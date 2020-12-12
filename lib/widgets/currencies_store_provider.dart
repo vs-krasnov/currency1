@@ -12,25 +12,50 @@ class CurrenciesStoreProvider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FutureProvider(
-      create: (context) async {
-        final store = CurrenciesStore.create(ratesService: context.read());
-        await store.init();
-        return store;
-      },
-      builder: (context, _) {
-        final store = context.watch<CurrenciesStore>();
+    return Provider<CurrenciesStore>(
+      create: (context) => CurrenciesStore.create(ratesService: context.read()),
+      child: _StoreInitializer(
+        child: child,
+      ),
+    );
+  }
+}
 
-        if (store == null) {
-          return Container(
-            color: Colors.white,
-            child: Center(
-              child: CircularProgressIndicator(),
-            ),
-          );
+class _StoreInitializer extends StatefulWidget {
+  final Widget child;
+
+  const _StoreInitializer({Key key, @required this.child}) : super(key: key);
+
+  @override
+  __StoreInitializerState createState() => __StoreInitializerState();
+}
+
+class __StoreInitializerState extends State<_StoreInitializer> {
+  Future<void> _initFuture;
+
+  @override
+  void initState() {
+    super.initState();
+
+    final store = context.read<CurrenciesStore>();
+    _initFuture = store.init();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder(
+      future: _initFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.done) {
+          return widget.child;
         }
 
-        return child;
+        return Container(
+          color: Colors.white,
+          child: Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
       },
     );
   }
